@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # README で「Python 3.8 以上」と案内しているため、下限と最新の両方で確認する
+        python-version: ["3.8", "3.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: Check README with the checker itself (fail on ERROR)
+        run: |
+          python scripts/check.py --register general README.md
+          python scripts/check.py --register general --json README.md \
+            | python -c "import json,sys; d=json.load(sys.stdin); sys.exit(1 if d['counts'].get('ERROR') else 0)"

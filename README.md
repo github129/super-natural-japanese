@@ -1,58 +1,100 @@
 # super-natural-japanese
 
-> ⚠️ このリポジトリはセットアップ直後の状態です。プロジェクトの目的・技術スタックは今後このファイルに追記してください。
+日本語の文章を「自然・正確・一貫」で仕上げる Agent Skill。敬語・表記ゆれ・公用文に対応し、依存ゼロの高速チェッカー付き。
 
-## 概要
+このリポジトリはスキル本体の開発・更新用です。リポジトリ直下がそのままスキルフォルダになっています。
 
-<!-- プロジェクトの目的、解決したい課題、想定ユーザーをここに書きます -->
+## インストール
 
-## セットアップ
+リポジトリをスキル置き場に clone すると、そのまま使えます。
 
-<!-- 技術スタックが決まったら、必要なツールのバージョンとインストール手順をここに書きます -->
+```bash
+# GitHub Copilot(リポジトリ単位)
+git clone https://github.com/github129/super-natural-japanese .github/skills/super-natural-japanese
 
-## 開発の流れ
+# GitHub Copilot(個人単位・全プロジェクト共通)
+git clone https://github.com/github129/super-natural-japanese ~/.copilot/skills/super-natural-japanese
 
-このリポジトリでは `main` ブランチを常にリリース可能な状態に保ちます。
-`main` へ直接コミットせず、必ず作業ブランチと Pull Request を経由してください。
+# Claude Code(リポジトリ単位)
+git clone https://github.com/github129/super-natural-japanese .claude/skills/super-natural-japanese
+```
 
-1. `main` から作業ブランチを作成する
-   ```bash
-   git switch main
-   git pull origin main
-   git switch -c feature/<内容が分かる名前>
-   ```
-2. 変更をコミットし、作業ブランチを push する
-   ```bash
-   git push -u origin feature/<内容が分かる名前>
-   ```
-3. GitHub 上で `main` 向けの Pull Request を作成する(テンプレートに沿って記入)
-4. レビューを経て `main` にマージする
+Copilot CLI では `/skills reload` で再読み込み。`/super-natural-japanese` で明示的に呼び出せます。
 
-### ブランチ命名の目安
+更新するときは clone 先で `git pull` します。
 
-| プレフィックス | 用途 |
-| --- | --- |
-| `feature/` | 新機能の追加 |
-| `fix/` | 不具合の修正 |
-| `docs/` | ドキュメントのみの変更 |
-| `chore/` | 設定変更・依存関係の更新など |
+## 使い方の例
 
-### コミットメッセージ
+- 「この議事録を自然な日本語に直して」
+- 「このメール、敬語に問題ないかチェックだけして」
+- 「docs/ 以下の表記ゆれを統一して」
+- 「この通知文を公用文のルールで書き直して」
 
-1 行目に「何を・なぜ変えたか」が分かる要約を書いてください。日本語・英語どちらでも構いません。
+## チェッカー単体
 
-## ディレクトリ構成
+```bash
+python3 scripts/check.py --register business doc.md
+python3 scripts/check.py --register kouyou --rules .jp-style.txt notice.md
+echo "本文" | python3 scripts/check.py --register chat -
+```
+
+Python 3.8 以上で、標準ライブラリのみで動きます。
+
+## ファイル構成
 
 ```
 .
-├── .github/          # Pull Request テンプレートなど GitHub 用の設定
-├── .editorconfig     # エディタ共通のインデント・改行設定
-├── .gitattributes    # 改行コードの正規化設定
-├── .gitignore        # Git 管理から除外するファイル
-├── CLAUDE.md         # Claude Code 向けのプロジェクト説明
-└── README.md         # このファイル
+├── SKILL.md                 # スキル本体(手順とルール)
+├── references/              # 必要なときだけ読む参照資料
+│   ├── design.md            #   設計(読み手・主メッセージ・型の見分け方)
+│   ├── keigo.md             #   敬語の誤用パターン
+│   ├── hyoki.md             #   漢字・かな・数字・記号の表記
+│   ├── kouyoubun.md         #   公用文のルール
+│   ├── ai-patterns.md       #   AI調・翻訳調の言い回し
+│   └── checklist.md         #   Python が使えないときの目視チェック
+├── scripts/check.py         # 軽量チェッカー(標準ライブラリのみ)
+├── evals/evals.json         # スキル改善時に確認する評価ケース
+├── tests/test_check.py      # check.py の回帰テスト
+├── CHANGELOG.md             # 変更履歴
+└── CLAUDE.md                # Claude Code 向けの開発ルール
 ```
+
+## 開発
+
+### テスト
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+`scripts/check.py` を変更したら、必ず対応するテストを `tests/test_check.py` に追加してください。
+push と Pull Request のたびに、GitHub Actions が Python 3.8 と最新版でテストを実行します。
+
+### スキルを改善するとき
+
+1. `SKILL.md` や `references/` を変更する
+2. `evals/evals.json` の全ケースで文章を作り直し、`past_feedback` に挙がった指摘が再発しないか確かめる
+3. 新しく見つかった指摘は `past_feedback` に追記する
+4. `CHANGELOG.md` の `[Unreleased]` に変更を書く
+
+### ブランチ運用
+
+`main` は常に使える状態に保ちます。直接 push せず、作業ブランチから Pull Request を作成してください。
+
+```bash
+git switch main && git pull origin main
+git switch -c feature/<内容が分かる名前>
+# 変更・コミット
+git push -u origin feature/<内容が分かる名前>
+```
+
+| プレフィックス | 用途 |
+| --- | --- |
+| `feature/` | ルール・参照資料・チェッカーの追加 |
+| `fix/` | 誤検出や誤りの修正 |
+| `docs/` | README など説明のみの変更 |
+| `chore/` | CI・設定の変更 |
 
 ## ライセンス
 
-未定です。公開時にはライセンスファイルを追加してください。
+MIT です。設計の一部は coji/natural-japanese(MIT)に着想を得ています。
