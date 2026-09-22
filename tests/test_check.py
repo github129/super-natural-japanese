@@ -245,9 +245,16 @@ class SkillLayoutTest(unittest.TestCase):
         self.assertEqual(data["skill_name"], "super-natural-japanese")
         ids = [e["id"] for e in data["evals"]]
         self.assertEqual(len(ids), len(set(ids)), "evals の id が重複している")
+        known = {"checker_no_error", "max_chars", "regex", "not_regex", "count_max",
+                 "regex_before_half", "line_count_equal"}
         for e in data["evals"]:
             self.assertTrue(e.get("prompt"))
             self.assertTrue(e.get("expected_output"))
+            for c in e.get("checks", []):
+                self.assertIn(c["check"], known, "未知の check 種別: %s" % c["check"])
+                self.assertTrue(c.get("text"), "check に text がない: %r" % c)
+            for rel in e.get("files", []):
+                self.assertTrue(os.path.exists(os.path.join(ROOT, rel)), "%s が存在しない" % rel)
 
 
 if __name__ == "__main__":

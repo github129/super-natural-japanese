@@ -62,9 +62,9 @@ Python 3.8 以上で、標準ライブラリのみで動きます。
 │   ├── ai-patterns.md       #   AI調・翻訳調の言い回し
 │   └── checklist.md         #   Python が使えないときの目視チェック
 ├── scripts/check.py         # 軽量チェッカー(標準ライブラリのみ)
-├── evals/evals.json         # スキル改善時に確認する評価ケース
+├── evals/                   # 評価ケース(evals.json)、入力(inputs/)、結果(results/)、手順(README.md)
 ├── Skills/                  # 配布用 zip(上記のスキルファイルを固めたもの)
-├── tools/build_skill_zip.py # 配布用 zip を作る・検証するスクリプト
+├── tools/                   # 配布用 zip の生成(build_skill_zip.py)と評価の実行・採点(eval_*.py)
 ├── tests/test_check.py      # check.py の回帰テスト
 ├── CHANGELOG.md             # 変更履歴
 └── CLAUDE.md                # Claude Code 向けの開発ルール
@@ -84,8 +84,8 @@ push と Pull Request のたびに、GitHub Actions が Python 3.8 と最新版�
 ### スキルを改善するとき
 
 1. `SKILL.md` や `references/` を変更する
-2. `evals/evals.json` の全ケースで文章を作り直し、`past_feedback` に挙がった指摘が再発しないか確かめる
-3. 新しく見つかった指摘は `past_feedback` に追記する
+2. `evals/README.md` の手順で全ケースをスキルあり・なしで実行し、A/B を伏せた採点で改善が本当に効いたか確かめる
+3. 新しく見つかった指摘は `past_feedback` に追記し、結果の要約を `evals/results/` に残す
 4. `CHANGELOG.md` の `[Unreleased]` に変更を書く
 5. 配布用 zip を作り直してコミットする
 
