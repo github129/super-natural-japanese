@@ -1,0 +1,48 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# エディタ / IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# 環境変数・秘密情報
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ログ・一時ファイル
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# Node.js
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Claude Code(ローカル設定は共有しない)
+.claude/settings.local.json
