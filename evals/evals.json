@@ -1,18 +1,750 @@
 {
   "skill_name": "super-natural-japanese",
-  "note": "スキルを改善したら、必ず全ケースで文章を作り直し、過去の指摘に引っかからないか確かめる。",
+  "note": "スキルを改善したら、全ケースをスキルあり・なしで実行し直し、past_feedback の指摘が再発しないか確かめる。手順は evals/README.md。",
+  "output_convention": "各ケースの成果物は outputs/output.md に本文だけを保存する(設計メモや説明は含めない)。ファイルを直す依頼では outputs/ 以下にコピーした入力ファイルをその場で編集する。",
   "evals": [
     {
       "id": 1,
-      "prompt": "200文字以内で Claude を説明する文章の台本を考えてください。",
-      "expected_output": "読み手の問いの順に答える自然な紹介文。型（定義→列挙→強み→ただし→コツ）や演出がない。",
-      "past_feedback": ["「コツは一つ。」は溜めの演出", "「話しかけるように頼むだけで」は広告調", "「確かめましょう」は教材調", "定義→列挙→強み→注意→コツの型"]
+      "name": "business-email-keigo",
+      "prompt": "このメール、取引先に送る前に敬語や言い回しに問題がないか見て、直した版をください。事実や金額は変えないでください。",
+      "files": [
+        "evals/inputs/email.md"
+      ],
+      "register": "business",
+      "expected_output": "二重敬語・相手の動作への謙譲語・「させていただく」の連発・バイト敬語・挨拶の重複が直り、日付と金額はそのまま。全文を一律に書き換えず、元の構成を保つ。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "business",
+          "text": "check.py(business)で ERROR が 0"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "おっしゃられ",
+          "text": "二重敬語「おっしゃられた」が残っていない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ご確認して(ください|下さい)|お聞きして(ください|下さい)|ご連絡していただ",
+          "text": "相手の動作への謙譲語が残っていない"
+        },
+        {
+          "check": "count_max",
+          "pattern": "させていただ",
+          "n": 1,
+          "text": "「させていただく」は 1 回以下"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "よろしかったでしょうか",
+          "text": "「よろしかったでしょうか」が残っていない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "のほう[はがを]",
+          "text": "ぼかしの「〜のほう」が残っていない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "部長様",
+          "text": "「部長様」(役職+様)が残っていない"
+        },
+        {
+          "check": "count_max",
+          "pattern": "お世話になっております",
+          "n": 1,
+          "text": "「お世話になっております」は 1 回以下"
+        },
+        {
+          "check": "regex",
+          "pattern": "10月15日",
+          "text": "納期 10月15日 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "1,250,000円",
+          "text": "金額 1,250,000円 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "10月2日",
+          "text": "打ち合わせ日 10月2日 が保たれている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "[（）]",
+          "text": "元の半角括弧を全角に変えていない(依頼外の表記変更をしない)"
+        }
+      ],
+      "expectations": [
+        "元の段落構成(挨拶→報告→確認→締め)を保ったまま問題箇所だけ直しており、全文を別の文章に置き換えていない",
+        "打ち合わせ日程の確認(依頼)が、経緯の説明より前か同等に目立つ位置にある"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが負け。「金額は、…金額から」の重複、添付案内文の段落末への移動と「詳細は」の加筆、半角括弧の全角化など、敬語修正の依頼範囲を超えた変更をした",
+        "iteration-1: 両者とも件名「打ち合わせの件」なのに日程確認が 4 段落目のまま(判断観点 2 を両方が落とした)"
+      ]
     },
     {
       "id": 2,
+      "name": "minutes-rewrite",
+      "prompt": "この議事録、時系列の書き起こしになっていて読みにくいので、決定事項と各自の宿題がすぐ分かる形に直してください。数字や日付は変えないで。",
+      "files": [
+        "evals/inputs/minutes.md"
+      ],
+      "register": "business",
+      "expected_output": "決定事項(10/22 延期、サーバー増強承認)と宿題(鈴木: 稟議申請、高橋: 営業へ説明)が担当・期限つきで冒頭にあり、時系列の書き起こしを残さない。表記ゆれ(サーバ/サーバー)が統一されている。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "business",
+          "text": "check.py(business)で ERROR が 0"
+        },
+        {
+          "check": "regex",
+          "pattern": "10月22日",
+          "text": "リリース日 10月22日 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "120万円",
+          "text": "残り予算 120万円 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "20万円",
+          "text": "増強費用 約20万円 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "9月25日",
+          "text": "次回日程 9月25日 が保たれている"
+        },
+        {
+          "check": "regex_before_half",
+          "pattern": "10月22日",
+          "text": "決定事項(10月22日への延期)が本文の前半にある"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "サーバ(?!ー)",
+          "text": "「サーバ」と「サーバー」の表記ゆれが統一されている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "^1[01]:[0-5]0 ",
+          "flags": "M",
+          "text": "「10:05 〜さんから」形式の時系列書き起こしが残っていない"
+        },
+        {
+          "check": "regex",
+          "pattern": "鈴木",
+          "text": "稟議申請の担当(鈴木)が書かれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "高橋",
+          "text": "営業説明の担当(高橋)が書かれている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "[（）／]",
+          "text": "元の半角括弧・スラッシュを全角に変えていない(依頼外の表記変更をしない)"
+        }
+      ],
+      "expectations": [
+        "宿題が「誰が・何を・いつまでに」の形で書かれている(鈴木: 稟議申請を明日まで、高橋: 営業へリリース延期を説明)",
+        "延期の理由(負荷テスト未了)が決定事項と結びつけて書かれている"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが勝ち。ただし半角括弧「(木)」「(PM)」と「/」を全角に変えた(依頼外の表記変更)。推測で補った日付(9月19日)は補足と分かる形にしたい"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "slack-deploy-delay",
+      "prompt": "開発チームのSlackに投稿する文を書いてください。内容: 明日15時に予定していた本番デプロイを17時に延期する。理由はQAの回帰テストが終わっていないため。17時以降に作業予定がある人は私(森)に連絡してほしい。短く、堅すぎない感じで。",
+      "files": [],
+      "register": "chat",
+      "expected_output": "要件が先頭にあり、200字以内、丁寧語ベースで敬語過剰でない。15時→17時、QA未完了、連絡先(森)が入っている。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "chat",
+          "text": "check.py(chat)で ERROR が 0"
+        },
+        {
+          "check": "max_chars",
+          "n": 200,
+          "text": "空白を除いて 200 字以内"
+        },
+        {
+          "check": "regex",
+          "pattern": "17時",
+          "text": "新しい時刻 17時 が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "15時",
+          "text": "元の時刻 15時 が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "QA|回帰テスト",
+          "text": "延期理由(QA/回帰テスト)が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "森",
+          "text": "連絡先(森)が入っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "させていただ",
+          "text": "「させていただく」を使っていない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "申し上げ|恐縮|賜り",
+          "text": "チャットに不釣り合いな改まった敬語がない"
+        },
+        {
+          "check": "regex_before_half",
+          "pattern": "17時",
+          "text": "結論(17時に延期)が前半にある"
+        }
+      ],
+      "expectations": [
+        "最初の一文で「デプロイを17時に延期」が分かる",
+        "絵文字や見出しの多用がなく、Slack の投稿として自然な長さと口調"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが僅差で勝ち。見出しは「延期」なのに本文一文目が「変更します」で語が揃っていない"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "kouyou-notice",
+      "prompt": "この市のお知らせを、公用文のルールに沿って、住民が読んですぐ分かる文章に書き直してください。対象者・期間・金額などの事実は変えないでください。",
+      "files": [
+        "evals/inputs/notice.md"
+      ],
+      "register": "kouyou",
+      "expected_output": "です・ます体で統一、役所言葉(鑑み・遺漏なきよう)を言い換え、条件を文頭に、対象者・期間・費用が先に分かる。事実(令和8年10月1日〜12月31日、1,500円、65歳以上、電話番号)は保持。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "kouyou",
+          "text": "check.py(kouyou)で ERROR が 0"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "鑑み",
+          "text": "「〜に鑑み」が言い換えられている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "遺漏",
+          "text": "「遺漏なきよう」が言い換えられている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "問い合わせしてください|問い合わせして下さい",
+          "text": "「お問い合わせしてください」が直っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "無料である",
+          "text": "常体の「無料である」が残っていない(文体統一)"
+        },
+        {
+          "check": "regex",
+          "pattern": "令和8年10月1日",
+          "text": "開始日 令和8年10月1日 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "12月31日",
+          "text": "終了日 12月31日 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "1,500円",
+          "text": "自己負担金 1,500円 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "65歳",
+          "text": "対象年齢 65歳 が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "012-345-6789",
+          "text": "電話番号が保たれている"
+        },
+        {
+          "check": "regex",
+          "pattern": "生活保護",
+          "text": "無料の条件(生活保護受給世帯)が保たれている"
+        }
+      ],
+      "expectations": [
+        "対象者・期間・費用・場所・持ち物の各項目が、住民が確認する順に並び、見出しか箇条書きで探しやすい",
+        "冒頭の挨拶文が 1〜2 文に短くなっているか削られている"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが僅差で勝ち。冒頭の要約と各項目の内容が重複してやや冗長。Markdown 見出しにしたため公用文の項目番号(1 対象者)が失われた"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "readme-intro",
+      "prompt": "社内向けCLIツール「logtidy」のREADMEの冒頭に置く紹介文を、300字くらいで書いてください。事実はこれだけです: JSON Lines形式のログファイルを読み込み、重複行を除き、時刻順に並べ替え、指定した期間だけを切り出す。Python 3.8以上、標準ライブラリだけで動く。インストールは pip install logtidy。1GBのログを約10秒で処理する。出力は元と同じJSON Linesか、--csv でCSV。",
+      "files": [],
+      "register": "general",
+      "expected_output": "読み手(ログを扱う社内エンジニア)の問いの順に一文ずつ答える紹介文。事実がすべて入り、捏造がない。「することができる」「さまざまな」等のAI調がない。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "general",
+          "text": "check.py(general)で ERROR が 0"
+        },
+        {
+          "check": "max_chars",
+          "n": 420,
+          "text": "空白を除いて 420 字以内(300字程度の指定)"
+        },
+        {
+          "check": "regex",
+          "pattern": "logtidy",
+          "text": "ツール名 logtidy が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "Python ?3\\.8",
+          "text": "Python 3.8 の要件が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "pip install logtidy",
+          "text": "インストールコマンドが入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "1 ?GB",
+          "text": "処理性能(1GB)が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "10秒",
+          "text": "処理性能(約10秒)が入っている"
+        },
+        {
+          "check": "regex",
+          "pattern": "--csv",
+          "text": "--csv オプションが入っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "することができ|することが可能",
+          "text": "「することができる」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "さまざま|様々|多岐にわた|シームレス",
+          "text": "中身のない形容(さまざま・多岐にわたる等)がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "見ていきましょう|ご紹介します|しましょう",
+          "text": "前置きや呼びかけの定型句がない"
+        }
+      ],
+      "expectations": [
+        "「何をするツールか → どんな場面で使うか → 導入は簡単か」のように読み手の問いの順につながっていて、機能の箇条書き列挙になっていない",
+        "事実の追加や誇張(例: 「あらゆる形式に対応」)がない"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが勝ち。スキルなしは事実を依頼と同じ順に 1 文 1 事実で並べただけで、「1GB≒10秒」を「大きなファイルでも待たされない」に一般化していた。スキルありは「CSVで欲しいときは」がやや口語的"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "diagnose-only",
+      "prompt": "この社内メール、書き換えないで、問題のある箇所とその理由、修正案だけを教えてください。",
+      "files": [
+        "evals/inputs/diagnose.md"
+      ],
+      "register": "business",
+      "expected_output": "ERROR→WARN の順に「箇所・理由・修正案」を列挙し、全文の書き換えはしない。二重敬語(ご覧になられる)、ら抜き(食べれます)、謙譲語の誤用(お聞きしてください)、文体混在(用意する)、表記ゆれ(出来る/できる、下さい/ください)を指摘し、最後に「直した版も出せます」と添える。",
+      "checks": [
+        {
+          "check": "regex",
+          "pattern": "ご覧になられ",
+          "text": "二重敬語「ご覧になられる」を指摘している"
+        },
+        {
+          "check": "regex",
+          "pattern": "食べれ",
+          "text": "ら抜き「食べれます」を指摘している"
+        },
+        {
+          "check": "regex",
+          "pattern": "お聞きして",
+          "text": "謙譲語の誤用「お聞きしてください」を指摘している"
+        },
+        {
+          "check": "regex",
+          "pattern": "用意する",
+          "text": "文体混在「昼食は会社で用意する。」を指摘している"
+        },
+        {
+          "check": "regex",
+          "pattern": "出来",
+          "text": "表記ゆれ(出来る/できる)を指摘している"
+        },
+        {
+          "check": "regex",
+          "pattern": "しましょう",
+          "text": "呼びかけ調「〜しましょう」に触れている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "会場は本社5階の大会議室を予定しております。参加者は全部で80名を見込んでいます。",
+          "text": "問題のない文を含む全文の書き換え版を出力していない"
+        },
+        {
+          "check": "regex",
+          "pattern": "直した版|修正版|修正した版|書き直した版|書き換えた版",
+          "text": "「直した版も出せます」の一言がある"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "\\b(ERROR|WARN|INFO)\\b",
+          "text": "ERROR/WARN/INFO の英語ラベルを返答に出していない(日本語で重大度を示す)"
+        }
+      ],
+      "expectations": [
+        "指摘が重大度順(誤り→表記ゆれ・好み)に並んでいる",
+        "各指摘に「どこ・なぜ・どう直す」の 3 点が揃っている"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが勝ち。ただし ERROR/WARN/INFO の英語ラベルをそのまま返答に使い、総務担当者向けとしては機械的。表記ゆれの項目に語そのものを差し替える修正案を付けた"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "jp-style-unify",
+      "prompt": "docs/ 以下のドキュメントの表記ゆれを、.jp-style.txt のルールに従って統一してください。内容は変えないでください。",
+      "files": [
+        "evals/inputs/jp-style/.jp-style.txt",
+        "evals/inputs/jp-style/docs/setup.md",
+        "evals/inputs/jp-style/docs/faq.md"
+      ],
+      "register": "general",
+      "expected_output": ".jp-style.txt の 5 ルールが両ファイルに適用され、ルール外の語(「初回ログイン」など)と内容は変わらない。",
+      "checks": [
+        {
+          "check": "not_regex",
+          "file": "docs/setup.md",
+          "pattern": "ユーザ(?!ー)",
+          "text": "setup.md: 「ユーザ」→「ユーザー」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/faq.md",
+          "pattern": "ユーザ(?!ー)",
+          "text": "faq.md: 「ユーザ」→「ユーザー」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/setup.md",
+          "pattern": "Github",
+          "text": "setup.md: 「Github」→「GitHub」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/faq.md",
+          "pattern": "Github",
+          "text": "faq.md: 「Github」→「GitHub」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/setup.md",
+          "pattern": "ログイン画面",
+          "text": "setup.md: 「ログイン画面」→「サインイン画面」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/faq.md",
+          "pattern": "ログイン画面",
+          "text": "faq.md: 「ログイン画面」→「サインイン画面」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/setup.md",
+          "pattern": "致します",
+          "text": "setup.md: 「致します」→「いたします」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/setup.md",
+          "pattern": "サーバ(?!ー)",
+          "text": "setup.md: 「サーバ」→「サーバー」"
+        },
+        {
+          "check": "not_regex",
+          "file": "docs/faq.md",
+          "pattern": "サーバ(?!ー)",
+          "text": "faq.md: 「サーバ」→「サーバー」"
+        },
+        {
+          "check": "regex",
+          "file": "docs/setup.md",
+          "pattern": "初回ログイン",
+          "text": "setup.md: ルール外の「初回ログイン」は変えていない(「ログイン画面」だけが対象)"
+        },
+        {
+          "check": "regex",
+          "file": "docs/setup.md",
+          "pattern": "## 3\\. サーバーへの接続",
+          "text": "setup.md: 見出しも統一されている"
+        },
+        {
+          "check": "line_count_equal",
+          "file": "docs/setup.md",
+          "ref": "evals/inputs/jp-style/docs/setup.md",
+          "text": "setup.md: 行数が変わっていない(内容の増減なし)"
+        },
+        {
+          "check": "line_count_equal",
+          "file": "docs/faq.md",
+          "ref": "evals/inputs/jp-style/docs/faq.md",
+          "text": "faq.md: 行数が変わっていない(内容の増減なし)"
+        }
+      ],
+      "expectations": [
+        ".jp-style.txt にない語や文は書き換えていない(表記統一以外の変更がない)"
+      ],
+      "past_feedback": [
+        "iteration-1: 引き分け(両者の出力がバイト単位で同一)。機械的な作業ではスキルの差が出ない"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "ai-intro-rewrite",
+      "prompt": "この紹介文、AIが書いたっぽさを消して自然な日本語にしてください。200字以内で。",
+      "files": [
+        "evals/inputs/ai-intro.md"
+      ],
+      "register": "general",
+      "expected_output": "定義→列挙→強み→ただし→コツの型が消え、読み手の問いの順につながる紹介文。「コツは一つ」「〜だけで」「〜ましょう」「さまざまな」「することができる」がない。事実の捏造がない。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "general",
+          "text": "check.py(general)で ERROR が 0"
+        },
+        {
+          "check": "max_chars",
+          "n": 220,
+          "text": "空白を除いて 220 字以内(200字以内の指定)"
+        },
+        {
+          "check": "regex",
+          "pattern": "Notion",
+          "text": "製品名 Notion が入っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "コツは一つ|理由はシンプル",
+          "text": "溜めの前置き文(「コツは一つ。」)がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "だけで",
+          "text": "手軽さを誇張する「〜だけで」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ましょう",
+          "text": "呼びかけ「〜ましょう」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "さまざま|様々",
+          "text": "「さまざまな」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "することができ|することが可能",
+          "text": "「することができる」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "シームレス|多岐にわた|非常に",
+          "text": "AI 文章に頻出する語(シームレス・多岐にわたる・非常に)がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "^\\s*[0-9１-３][.．)]",
+          "flags": "M",
+          "text": "「特徴は以下の3つ」型の番号付き列挙になっていない"
+        },
+        {
+          "check": "regex",
+          "pattern": "Notion ?AI",
+          "text": "元の事実「Notion AI で要約・翻訳」を落としていない"
+        }
+      ],
+      "expectations": [
+        "定義→機能列挙→強み→ただし→コツの型から外れ、文と文が読み手の問いでつながっている",
+        "元にない事実(料金、利用者数など)を足していない"
+      ],
+      "past_feedback": [
+        "iteration-1: スキルありが僅差で勝ちだが、両者とも定義→列挙→強み→ただし→コツの並びが元のまま(判断観点 1 を両方が落とした)。型どおりの元文をリライトするとき、文の順番を組み替える指示が効いていない",
+        "iteration-1: スキルありは字数制約のために「Notion AI で要約・翻訳」の事実を丸ごと落とした。削るなら言い回しからで、事実は残す"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "claude-script-200",
+      "prompt": "200文字以内で Claude を説明する文章の台本を考えてください。",
+      "files": [],
+      "register": "general",
+      "expected_output": "読み手の問いの順に答える自然な紹介文。型(定義→列挙→強み→ただし→コツ)や演出がない。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "general",
+          "text": "check.py(general)で ERROR が 0"
+        },
+        {
+          "check": "max_chars",
+          "n": 210,
+          "text": "空白を除いて 210 字以内(200字以内の指定)"
+        },
+        {
+          "check": "regex",
+          "pattern": "Claude",
+          "text": "Claude の名前が入っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "コツは一つ|理由はシンプル|ポイントは一つ",
+          "text": "溜めの前置き文がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "だけで",
+          "text": "「〜だけで」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ましょう",
+          "text": "「〜ましょう」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "さまざま|様々",
+          "text": "「さまざまな」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "することができ",
+          "text": "「することができる」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ご存じですか|ご存知ですか|ぜひ|お試しください",
+          "text": "広告コピー型の導入・締め(ご存じですか／ぜひお試しください)がない"
+        }
+      ],
+      "expectations": [
+        "定義→列挙→強み→注意→コツの型になっていない",
+        "主語のない短文でリズムを作る演出(「コツは一つ。」「プログラムは書きません。」)がない"
+      ],
+      "past_feedback": [
+        "「コツは一つ。」は溜めの演出",
+        "「話しかけるように頼むだけで」は広告調",
+        "「確かめましょう」は教材調",
+        "定義→列挙→強み→注意→コツの型",
+        "iteration-1: スキルありが勝ち。スキルなしは 4 文で定義→列挙→強み→注意→コツを忠実になぞった。スキルありは「開発した」「開発元の」の重複と、199 字で上限ぎりぎり"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "powerapps-script-200",
       "prompt": "PowerApps を紹介する台本を200文字以内で考えてください。",
-      "expected_output": "読み手を勝手に絞らず、読み手が当てはめられる粒度の具体で、問いの連鎖でつながる紹介文。情報の位置づけ（新しい機能か等）が事実どおりに示されている。",
-      "past_feedback": ["架空の場面をこしらえた版は不自然", "「〜している職場なら」の呼びかけ", "主語のない短文「プログラムはほとんど書きません。」", "元スキルの「最近は、」のような位置づけは自然"]
+      "files": [],
+      "register": "general",
+      "expected_output": "読み手を勝手に絞らず、読み手が当てはめられる粒度の具体で、問いの連鎖でつながる紹介文。情報の位置づけ(新しい機能か等)が事実どおりに示されている。",
+      "checks": [
+        {
+          "check": "checker_no_error",
+          "register": "general",
+          "text": "check.py(general)で ERROR が 0"
+        },
+        {
+          "check": "max_chars",
+          "n": 210,
+          "text": "空白を除いて 210 字以内(200字以内の指定)"
+        },
+        {
+          "check": "regex",
+          "pattern": "Power ?Apps",
+          "text": "Power Apps の名前が入っている"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "なら[、,]",
+          "text": "読み手を呼びかけで絞る「〜している職場なら、」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "コツは一つ|理由はシンプル|ポイントは一つ",
+          "text": "溜めの前置き文がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "だけで",
+          "text": "「〜だけで」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ましょう",
+          "text": "「〜ましょう」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "さまざま|様々",
+          "text": "「さまざまな」がない"
+        },
+        {
+          "check": "not_regex",
+          "pattern": "ご存じですか|ご存知ですか|ぜひ|お試しください",
+          "text": "広告コピー型の導入・締め(ご存じですか／ぜひお試しください)がない"
+        }
+      ],
+      "expectations": [
+        "架空の細かい場面(毎朝の点検表、写真を添えて報告…)をこしらえていない",
+        "主語のない短文(「プログラムはほとんど書きません。」)でリズムを作っていない"
+      ],
+      "past_feedback": [
+        "架空の場面をこしらえた版は不自然",
+        "「〜している職場なら」の呼びかけ",
+        "主語のない短文「プログラムはほとんど書きません。」",
+        "元スキルの「最近は、」のような位置づけは自然",
+        "iteration-1: スキルありが勝ち。スキルなしは「ご存じですか」で始まり「ぜひお試しください」で締める広告コピー型(machine check に無かったので追加)",
+        "iteration-1: スキルありの出力は references/design.md の例文とほぼ同じ(「最近は、…Copilotに日本語で説明すると、画面のたたき台まで」)。例文の丸写しが起きている。design.md の例は評価と別の題材にするか、丸写しを禁じる必要がある"
+      ]
+    }
+  ],
+  "iterations": [
+    {
+      "id": 1,
+      "date": "2026-09-22",
+      "summary": "スキルあり 8 勝 1 分 1 敗(A/B 伏せ採点)。合格率 98% 対 93%。所要時間 +16.5 秒、トークン +11,660 が代価。詳細は evals/results/iteration-1.md"
     }
   ]
 }
