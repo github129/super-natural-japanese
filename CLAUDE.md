@@ -15,6 +15,8 @@
 - `scripts/check.py`: 標準ライブラリのみで動く軽量チェッカー。Python 3.8 互換を保つ(外部依存を追加しない)
 - `evals/evals.json`: スキル改善時に確認する評価ケースと過去の指摘
 - `tests/test_check.py`: `check.py` の回帰テスト
+- `Skills/super-natural-japanese.zip`: 利用者がダウンロードしてすぐ使うための配布用 zip。手で編集せず `tools/build_skill_zip.py` で生成する
+- `tools/build_skill_zip.py`: 配布用 zip の生成(`--check` で検証)。zip に入れるファイルの一覧もここで管理する
 
 ## コマンド
 
@@ -24,6 +26,10 @@ python3 -m unittest discover -s tests -v
 
 # チェッカーの動作確認
 echo "本文" | python3 scripts/check.py --register business -
+
+# 配布用 zip を作り直す(スキルのファイルを変えたら必ず実行してコミットする)
+python3 tools/build_skill_zip.py
+python3 tools/build_skill_zip.py --check   # 最新か確認(CI でも実行される)
 ```
 
 ## 変更時のルール
@@ -33,6 +39,7 @@ echo "本文" | python3 scripts/check.py --register business -
 - `references/*.md` には「誤りの例」が意図的に含まれているため、`check.py` を references に対して通しても ERROR が出るのは正常
 - `SKILL.md` や `references/` を変えたら `evals/evals.json` の全ケースを確認し、`CHANGELOG.md` の `[Unreleased]` に記録する
 - スキルの中身を大きく変えるときは、先に「なぜ」を PR 説明に書く
+- `SKILL.md`・`README.md`・`CHANGELOG.md`・`references/`・`scripts/`・`evals/` のどれかを変えたら、`python3 tools/build_skill_zip.py` で `Skills/super-natural-japanese.zip` を作り直して同じコミットに含める(古いままだと CI が失敗する)
 
 ## ブランチ運用
 

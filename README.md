@@ -6,22 +6,31 @@
 
 ## インストール
 
-リポジトリをスキル置き場に clone すると、そのまま使えます。
+### zip をダウンロードして置く(いちばん簡単)
+
+次の zip をダウンロードします。
+
+- [Skills/super-natural-japanese.zip](https://github.com/github129/super-natural-japanese/raw/main/Skills/super-natural-japanese.zip)
+
+展開して出てくる `super-natural-japanese` フォルダを、スキル置き場に置きます。
+
+| 環境 | 置き場所 |
+| --- | --- |
+| GitHub Copilot(リポジトリ単位) | `.github/skills/super-natural-japanese/` |
+| GitHub Copilot(個人単位・全プロジェクト共通) | `~/.copilot/skills/super-natural-japanese/` |
+| Claude Code(リポジトリ単位) | `.claude/skills/super-natural-japanese/` |
+| Claude Code(個人単位) | `~/.claude/skills/super-natural-japanese/` |
+
+zip は `main` の内容と常に同期しています(CI で検証)。更新するときは zip をダウンロードし直して置き換えてください。
+
+### git clone で置く(更新を `git pull` で済ませたいとき)
 
 ```bash
-# GitHub Copilot(リポジトリ単位)
-git clone https://github.com/github129/super-natural-japanese .github/skills/super-natural-japanese
-
-# GitHub Copilot(個人単位・全プロジェクト共通)
-git clone https://github.com/github129/super-natural-japanese ~/.copilot/skills/super-natural-japanese
-
-# Claude Code(リポジトリ単位)
+# 例: Claude Code(リポジトリ単位)
 git clone https://github.com/github129/super-natural-japanese .claude/skills/super-natural-japanese
 ```
 
 Copilot CLI では `/skills reload` で再読み込み。`/super-natural-japanese` で明示的に呼び出せます。
-
-更新するときは clone 先で `git pull` します。
 
 ## 使い方の例
 
@@ -54,6 +63,8 @@ Python 3.8 以上で、標準ライブラリのみで動きます。
 │   └── checklist.md         #   Python が使えないときの目視チェック
 ├── scripts/check.py         # 軽量チェッカー(標準ライブラリのみ)
 ├── evals/evals.json         # スキル改善時に確認する評価ケース
+├── Skills/                  # 配布用 zip(上記のスキルファイルを固めたもの)
+├── tools/build_skill_zip.py # 配布用 zip を作る・検証するスクリプト
 ├── tests/test_check.py      # check.py の回帰テスト
 ├── CHANGELOG.md             # 変更履歴
 └── CLAUDE.md                # Claude Code 向けの開発ルール
@@ -76,6 +87,14 @@ push と Pull Request のたびに、GitHub Actions が Python 3.8 と最新版�
 2. `evals/evals.json` の全ケースで文章を作り直し、`past_feedback` に挙がった指摘が再発しないか確かめる
 3. 新しく見つかった指摘は `past_feedback` に追記する
 4. `CHANGELOG.md` の `[Unreleased]` に変更を書く
+5. 配布用 zip を作り直してコミットする
+
+```bash
+python3 tools/build_skill_zip.py          # Skills/super-natural-japanese.zip を作り直す
+python3 tools/build_skill_zip.py --check  # zip がソースと一致しているか確認(CI と同じ)
+```
+
+zip が古いままだと CI が失敗します。
 
 ### ブランチ運用
 
