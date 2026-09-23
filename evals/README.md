@@ -25,6 +25,9 @@ WS=../super-natural-japanese-workspace/iteration-1
 
 # 1. ワークスペースを作る(各ケースに with_skill / without_skill の run ディレクトリと prompt.md ができる)
 python3 tools/eval_setup.py $WS
+#    スキルを変更したときは、変更前のスナップショットと比べる
+#    cp -r SKILL.md references scripts ../super-natural-japanese-workspace/skill-snapshot-vN/
+#    python3 tools/eval_setup.py $WS --configs with_skill,old_skill --old-skill-path ../super-natural-japanese-workspace/skill-snapshot-vN/SKILL.md
 
 # 2. 各 run の prompt.md をサブエージェントに渡して実行する(スキルあり・なしを同時に起動する)
 #    完了通知の total_tokens と duration_ms を <run>/timing.json に保存する
@@ -36,7 +39,7 @@ for d in $WS/eval-*/*/run-1; do
 done
 
 # 4. 判断系の観点を A/B を伏せて採点する
-python3 tools/eval_blind.py $WS            # blind/ と grader_prompt.md を作る
+python3 tools/eval_blind.py $WS            # blind/ と grader_prompt.md を作る(old_skill と比べるなら --configs with_skill,old_skill)
 #    各ケースの blind/grader_prompt.md を採点エージェントに渡し、verdict.json を書かせる
 python3 tools/eval_blind.py $WS --merge    # verdict.json を各 run の judgments.json に戻す
 #    3. をもう一度実行すると grading.json に判断系の結果が入る
