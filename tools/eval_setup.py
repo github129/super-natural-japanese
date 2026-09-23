@@ -3,6 +3,7 @@
 
 usage:
   python3 tools/eval_setup.py <workspace>/iteration-N [--configs with_skill,without_skill]
+  python3 tools/eval_setup.py <workspace>/iteration-N --configs with_skill,old_skill --old-skill-path <snapshot>/SKILL.md
 
 作るもの(ケースごと):
   eval-NN-<name>/eval_metadata.json
@@ -44,8 +45,12 @@ BODY = """
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("iteration_dir")
-    ap.add_argument("--configs", default="with_skill,without_skill")
+    ap.add_argument("--configs", default="with_skill,without_skill",
+                    help="with_skill(現行スキル) / without_skill(スキルなし) / old_skill(--old-skill-path のスナップショット)")
+    ap.add_argument("--old-skill-path", help="old_skill 設定で読ませる SKILL.md のパス(比較基準のスナップショット)")
     args = ap.parse_args()
+    if "old_skill" in args.configs and not args.old_skill_path:
+        ap.error("old_skill を使うには --old-skill-path が必要")
     evals = json.load(open(os.path.join(ROOT, "evals", "evals.json"), encoding="utf-8"))
     configs = args.configs.split(",")
 
@@ -85,7 +90,12 @@ def main():
                 else:
                     save = ("- 完成した文章の本文だけを %s/output.md に保存してください(設計メモ・説明・変更点の要約・見出し「台本」などは含めない)。\n"
                             "- ユーザーに添える説明(変更点の要約など)があれば %s/user_notes.md に書いてください。" % (outputs, outputs))
-            head = (WITH_SKILL_HEAD.format(skill=SKILL_MD) if cfg == "with_skill" else WITHOUT_SKILL_HEAD.format(root=ROOT))
+            if cfg == "with_skill":
+                head = WITH_SKILL_HEAD.format(skill=SKILL_MD)
+            elif cfg == "old_skill":
+                head = WITH_SKILL_HEAD.format(skill=os.path.abspath(args.old_skill_path))
+            else:
+                head = WITHOUT_SKILL_HEAD.format(root=ROOT)
             prompt = head + BODY.format(prompt=ev["prompt"], inputs="\n".join(input_lines) or "なし", save=save)
             with open(os.path.join(run_dir, "prompt.md"), "w", encoding="utf-8") as fh:
                 fh.write(prompt)

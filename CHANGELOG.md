@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 変更
+
+- SKILL.md §2 に「既存文を直すとき — 直しすぎない」を追加。keep / change の割り振り、文の順番と記号の保持、掃引しない、事実は残す、補足の明示。design.md §7 に keep / change の表と型どおりの元文を直す手順、hyoki.md と ai-patterns.md に整合する一文を追加(参考元 coji/natural-japanese の「改稿は掃引ではない」に学ぶ)。評価結果は `evals/results/iteration-2.md`
+- `tools/eval_setup.py` に `old_skill` 設定(`--old-skill-path`)を追加し、変更前のスキルとの比較ができるようにした
+
 ### 追加
 
 - スキル一式(`SKILL.md`、`references/`、`scripts/check.py`、`evals/`)をリポジトリに取り込み
