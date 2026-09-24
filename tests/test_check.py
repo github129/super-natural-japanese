@@ -61,6 +61,13 @@ class KeigoTest(unittest.TestCase):
         items = run(text)
         self.assertTrue(any("させていただく" in m for m in messages(items, "WARN", "敬語")))
 
+    def test_quantity_to_narimasu(self):
+        items = run("見積金額は税込みで1,250,000円となります。")
+        self.assertTrue(any("となります" in m for m in messages(items, "INFO", "敬語")))
+        # 変化・結果を述べる「となります」は対象外
+        items = run("4月から有料となります。合計は3件となりました。")
+        self.assertFalse(any("となります" in m for m in messages(items, "INFO", "敬語")))
+
     def test_ryokai_only_in_formal_registers(self):
         self.assertTrue(messages(run("了解しました。", "business"), "INFO", "敬語"))
         self.assertFalse(messages(run("了解しました。", "chat"), "INFO", "敬語"))

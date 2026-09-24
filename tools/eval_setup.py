@@ -8,9 +8,10 @@ usage:
 作るもの(ケースごと):
   eval-NN-<name>/eval_metadata.json
   eval-NN-<name>/<config>/eval_metadata.json      (ビューアーが親ディレクトリから探すため)
-  eval-NN-<name>/<config>/run-1/inputs/...        (入力ファイルのコピー)
-  eval-NN-<name>/<config>/run-1/outputs/          (成果物の保存先。ファイル編集の依頼では入力をここにコピー)
-  eval-NN-<name>/<config>/run-1/prompt.md         (実行エージェントに渡す指示文)
+  eval-NN-<name>/<config>/run-K/inputs/...        (入力ファイルのコピー)
+  eval-NN-<name>/<config>/run-K/outputs/          (成果物の保存先。ファイル編集の依頼では入力をここにコピー)
+  eval-NN-<name>/<config>/run-K/prompt.md         (実行エージェントに渡す指示文)
+  (K は 1..--runs。同じ指示文で複数回実行してぶれを見る)
 """
 import argparse
 import json
@@ -48,6 +49,7 @@ def main():
     ap.add_argument("--configs", default="with_skill,without_skill",
                     help="with_skill(現行スキル) / without_skill(スキルなし) / old_skill(--old-skill-path のスナップショット)")
     ap.add_argument("--old-skill-path", help="old_skill 設定で読ませる SKILL.md のパス(比較基準のスナップショット)")
+    ap.add_argument("--runs", type=int, default=1, help="各設定を何回実行するか(run-1 .. run-N)。ぶれを抑えるなら 3")
     args = ap.parse_args()
     if "old_skill" in args.configs and not args.old_skill_path:
         ap.error("old_skill を使うには --old-skill-path が必要")
@@ -61,9 +63,9 @@ def main():
         os.makedirs(eval_dir, exist_ok=True)
         json.dump(meta, open(os.path.join(eval_dir, "eval_metadata.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
         edit_in_place = ev["name"] == "jp-style-unify"
-        for cfg in configs:
+        for cfg, r in [(c, r) for c in configs for r in range(1, args.runs + 1)]:
             cfg_dir = os.path.join(eval_dir, cfg)
-            run_dir = os.path.join(cfg_dir, "run-1")
+            run_dir = os.path.join(cfg_dir, "run-%d" % r)
             outputs = os.path.join(run_dir, "outputs")
             inputs = os.path.join(run_dir, "inputs")
             os.makedirs(outputs, exist_ok=True)

@@ -5,10 +5,10 @@ usage:
   python3 tools/eval_blind.py <iteration_dir>            # 各ケースに blind/{A,B}/ と grader_prompt.md を作る
   python3 tools/eval_blind.py <iteration_dir> --merge    # blind/verdict.json を各 run の judgments.json に戻す
 
-準備: 2 つの設定(既定: with_skill / without_skill)の成果物を、ランダムに A と B に割り当ててコピーし、
-      採点エージェントに渡す指示文 grader_prompt.md を書く。割り当ては mapping.json に記録する。
-統合: 採点エージェントが書いた verdict.json を mapping.json で元の設定に戻し、
-      <config>/run-1/judgments.json に保存する。その後 tools/eval_grade.py を実行すると grading.json に統合される。
+準備: 2 つの設定(既定: with_skill / without_skill)の成果物を run-K ごとに組にして、ランダムに A と B に
+      割り当ててコピーし、採点エージェントに渡す指示文 blind/pair-K/grader_prompt.md を書く(集計スクリプトが run-* を設定と誤認しないよう pair-K と呼ぶ)。割り当ては mapping.json に記録する。
+統合: 採点エージェントが書いた blind/pair-K/verdict.json を mapping.json で元の設定に戻し、
+      <config>/run-K/judgments.json に保存する。その後 tools/eval_grade.py を実行すると grading.json に統合される。
 """
 import argparse
 import json
@@ -67,59 +67,76 @@ def eval_dirs(iteration_dir):
             yield int(name.split("-")[1]), os.path.join(iteration_dir, name)
 
 
+def run_names(edir, configs):
+    """両方の設定に存在する run-K の名前を順に返す。"""
+    sets = []
+    for cfg in configs:
+        d = os.path.join(edir, cfg)
+        sets.append({n for n in os.listdir(d) if n.startswith("run-")} if os.path.isdir(d) else set())
+    common = set.intersection(*sets) if sets else set()
+    return sorted(common, key=lambda n: int(n.split("-")[1]))
+
+
 def build(iteration_dir, configs, seed):
     evals = load_evals()
     rng = random.Random(seed)
     for eid, edir in eval_dirs(iteration_dir):
         ev = evals[eid]
-        blind = os.path.join(edir, "blind")
-        shutil.rmtree(blind, ignore_errors=True)
-        os.makedirs(blind)
-        order = list(configs)
-        rng.shuffle(order)
-        mapping = {"A": order[0], "B": order[1]}
-        json.dump(mapping, open(os.path.join(blind, "mapping.json"), "w"))
+        shutil.rmtree(os.path.join(edir, "blind"), ignore_errors=True)
         in_place = ev["name"] == "jp-style-unify"
-        for label, cfg in mapping.items():
-            src = os.path.join(edir, cfg, "run-1", "outputs")
-            if in_place:
-                shutil.copytree(os.path.join(src, "docs"), os.path.join(blind, label, "docs"))
-            else:
-                os.makedirs(os.path.join(blind, label))
-                if os.path.isfile(os.path.join(src, "output.md")):
-                    shutil.copy(os.path.join(src, "output.md"), os.path.join(blind, label, "output.md"))
-        inputs = "\n".join("- " + os.path.join(ROOT, f) for f in ev.get("files", [])) or "なし"
-        exps = "\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(ev["expectations"]))
-        target = "docs/ 以下のファイル(元の入力と比べて何が変わったかを見る)" if in_place else "output.md"
-        text = PROMPT.format(prompt=ev["prompt"], inputs=inputs, blind=blind, target=target, exps=exps)
-        open(os.path.join(blind, "grader_prompt.md"), "w", encoding="utf-8").write(text)
-        print(os.path.basename(edir), mapping)
+        for run in run_names(edir, configs):
+            blind = os.path.join(edir, "blind", "pair-" + run.split("-")[1])
+            os.makedirs(blind)
+            order = list(configs)
+            rng.shuffle(order)
+            mapping = {"A": order[0], "B": order[1]}
+            json.dump(mapping, open(os.path.join(blind, "mapping.json"), "w"))
+            for label, cfg in mapping.items():
+                src = os.path.join(edir, cfg, run, "outputs")
+                if in_place:
+                    shutil.copytree(os.path.join(src, "docs"), os.path.join(blind, label, "docs"))
+                else:
+                    os.makedirs(os.path.join(blind, label))
+                    if os.path.isfile(os.path.join(src, "output.md")):
+                        shutil.copy(os.path.join(src, "output.md"), os.path.join(blind, label, "output.md"))
+            inputs = "\n".join("- " + os.path.join(ROOT, f) for f in ev.get("files", [])) or "なし"
+            exps = "\n".join("%d. %s" % (i + 1, t) for i, t in enumerate(ev["expectations"]))
+            target = "docs/ 以下のファイル(元の入力と比べて何が変わったかを見る)" if in_place else "output.md"
+            text = PROMPT.format(prompt=ev["prompt"], inputs=inputs, blind=blind, target=target, exps=exps)
+            open(os.path.join(blind, "grader_prompt.md"), "w", encoding="utf-8").write(text)
+            print(os.path.basename(edir), run, mapping)
 
 
 def merge(iteration_dir):
     for eid, edir in eval_dirs(iteration_dir):
-        blind = os.path.join(edir, "blind")
-        vpath = os.path.join(blind, "verdict.json")
-        if not os.path.isfile(vpath):
-            print(os.path.basename(edir), ": verdict.json がない")
+        broot = os.path.join(edir, "blind")
+        if not os.path.isdir(broot):
             continue
-        mapping = json.load(open(os.path.join(blind, "mapping.json")))
-        verdict = json.load(open(vpath, encoding="utf-8"))
-        pref = verdict.get("preference", "tie")
-        for label, cfg in mapping.items():
-            side = verdict.get(label, {})
-            out = {
-                "expectations": side.get("expectations", []),
-                "issues": side.get("issues", []),
-                "preferred": (pref == label),
-                "tie": (pref == "tie"),
-                "reasoning": verdict.get("reasoning", ""),
-            }
-            run_dir = os.path.join(edir, cfg, "run-1")
-            with open(os.path.join(run_dir, "judgments.json"), "w", encoding="utf-8") as fh:
-                json.dump(out, fh, ensure_ascii=False, indent=1)
-        winner = mapping.get(pref, "tie")
-        print("%s: preference=%s -> %s" % (os.path.basename(edir), pref, winner))
+        pairs = sorted((n for n in os.listdir(broot) if n.startswith("pair-")), key=lambda n: int(n.split("-")[1]))
+        for pair in pairs:
+            run = "run-" + pair.split("-")[1]
+            blind = os.path.join(broot, pair)
+            vpath = os.path.join(blind, "verdict.json")
+            if not os.path.isfile(vpath):
+                print(os.path.basename(edir), run, ": verdict.json がない")
+                continue
+            mapping = json.load(open(os.path.join(blind, "mapping.json")))
+            verdict = json.load(open(vpath, encoding="utf-8"))
+            pref = verdict.get("preference", "tie")
+            for label, cfg in mapping.items():
+                side = verdict.get(label, {})
+                out = {
+                    "expectations": side.get("expectations", []),
+                    "issues": side.get("issues", []),
+                    "preferred": (pref == label),
+                    "tie": (pref == "tie"),
+                    "reasoning": verdict.get("reasoning", ""),
+                }
+                run_dir = os.path.join(edir, cfg, run)
+                with open(os.path.join(run_dir, "judgments.json"), "w", encoding="utf-8") as fh:
+                    json.dump(out, fh, ensure_ascii=False, indent=1)
+            winner = mapping.get(pref, "tie")
+            print("%s %s: preference=%s -> %s" % (os.path.basename(edir), run, pref, winner))
 
 
 def main():
