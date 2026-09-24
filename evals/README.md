@@ -29,18 +29,19 @@ python3 tools/eval_setup.py $WS
 #    cp -r SKILL.md references scripts ../super-natural-japanese-workspace/skill-snapshot-vN/
 #    python3 tools/eval_setup.py $WS --configs with_skill,old_skill --old-skill-path ../super-natural-japanese-workspace/skill-snapshot-vN/SKILL.md
 
+#    ぶれを抑えるなら --runs 3 で各設定を 3 回ずつ実行する(1 回ずつだと勝敗がぶれで入れ替わる)
 # 2. 各 run の prompt.md をサブエージェントに渡して実行する(スキルあり・なしを同時に起動する)
 #    完了通知の total_tokens と duration_ms を <run>/timing.json に保存する
 
 # 3. 機械判定
-for d in $WS/eval-*/*/run-1; do
+for d in $WS/eval-*/*/run-*; do
   id=$(basename $(dirname $(dirname $d)) | sed -E 's/eval-0*([0-9]+)-.*/\1/')
   python3 tools/eval_grade.py $d --eval-id $id
 done
 
 # 4. 判断系の観点を A/B を伏せて採点する
 python3 tools/eval_blind.py $WS            # blind/ と grader_prompt.md を作る(old_skill と比べるなら --configs with_skill,old_skill)
-#    各ケースの blind/grader_prompt.md を採点エージェントに渡し、verdict.json を書かせる
+#    各ケースの blind/pair-K/grader_prompt.md を採点エージェントに渡し、verdict.json を書かせる
 python3 tools/eval_blind.py $WS --merge    # verdict.json を各 run の judgments.json に戻す
 #    3. をもう一度実行すると grading.json に判断系の結果が入る
 
